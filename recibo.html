@@ -1,0 +1,173 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Emissão de Recibo</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<style>
+body {
+    font-family: Arial, sans-serif;
+    background: #f5f5f5;
+    padding: 20px;
+}
+.container {
+    max-width: 500px;
+    margin: auto;
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+}
+h1 {
+    text-align: center;
+}
+input, textarea, button {
+    width: 100%;
+    padding: 10px;
+    margin-top: 10px;
+}
+canvas {
+    border: 1px solid #000;
+    margin-top: 10px;
+}
+button {
+    background: #2d89ef;
+    color: #fff;
+    border: none;
+    cursor: pointer;
+}
+</style>
+</head>
+
+<body>
+<div class="container">
+<h1>Emissão de Recibo</h1>
+
+<input id="nome" placeholder="Seu nome completo">
+<input id="cpf" placeholder="CPF ou CNPJ">
+<input id="aluno" placeholder="Nome do aluno">
+<input id="servico" placeholder="Serviço prestado">
+<input id="valor" placeholder="Valor pago (R$)">
+<input id="data" type="date">
+
+<p><strong>Assinatura do prestador de serviço</strong></p>
+<canvas id="assinatura" width="400" height="150"></canvas>
+<button onclick="limpar()">Limpar assinatura</button>
+
+<button onclick="gerarPDF()">Gerar PDF</button>
+</div>
+
+<script>
+const canvas = document.getElementById("assinatura");
+const ctx = canvas.getContext("2d");
+let desenhando = false;
+
+canvas.addEventListener("mousedown", () => desenhando = true);
+canvas.addEventListener("mouseup", () => desenhando = false);
+canvas.addEventListener("mousemove", desenhar);
+
+function desenhar(e) {
+    if (!desenhando) return;
+    ctx.lineWidth = 2;
+    ctx.lineCap = "round";
+    ctx.lineTo(e.offsetX, e.offsetY);
+    ctx.stroke();
+}
+
+function limpar() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+}
+
+function gerarPDF() {
+    const { jsPDF } = window.jspdf;
+const pdf = new jsPDF();
+
+pdf.setFontSize(14);
+pdf.text("RECIBO DE PAGAMENTO", 60, 20);
+
+pdf.setFontSize(11);
+
+const partesData = data.value.split("-");
+const dataFormatada = partesData[2] + "/" + partesData[1] + "/" + partesData[0];
+
+const texto = `
+Eu, ${nome.value}, portador(a) do CPF/CNPJ ${cpf.value}, declaro ter recebido de ${aluno.value} a quantia de R$ ${valor.value} (${valorPorExtenso(valor.value)})
+, referente ao serviço de ${servico.value}.
+
+O pagamento foi efetuado em ${dataFormatada}, através de PIX.
+
+Por ser verdade, firmo o presente recibo.
+`;
+
+pdf.text(texto, 20, 40, { maxWidth: 170 });
+
+const img = canvas.toDataURL("image/png");
+pdf.addImage(img, "PNG", 20, 110, 70, 30);
+
+pdf.text("Assinatura do Prestador de Serviço", 20, 150);
+
+pdf.save("recibo.pdf");
+
+function valorPorExtenso(valor) {
+  valor = parseInt(valor);
+
+  if (isNaN(valor) || valor <= 0) return "";
+
+  const unidades = ["", "um", "dois", "três", "quatro", "cinco", "seis", "sete", "oito", "nove"];
+  const especiais = ["dez", "onze", "doze", "treze", "quatorze", "quinze", "dezesseis", "dezessete", "dezoito", "dezenove"];
+  const dezenas = ["", "", "vinte", "trinta", "quarenta", "cinquenta", "sessenta", "setenta", "oitenta", "noventa"];
+  const centenas = ["", "cento", "duzentos", "trezentos", "quatrocentos", "quinhentos", "seiscentos", "setecentos", "oitocentos", "novecentos"];
+
+  function converter(numero) {
+    let texto = "";
+
+    if (numero === 100) return "cem";
+
+    if (numero >= 100) {
+      texto += centenas[Math.floor(numero / 100)];
+      numero %= 100;
+      if (numero > 0) texto += " e ";
+    }
+
+    if (numero >= 20) {
+      texto += dezenas[Math.floor(numero / 10)];
+      numero %= 10;
+      if (numero > 0) texto += " e ";
+    }
+
+    if (numero >= 10) {
+      texto += especiais[numero - 10];
+      numero = 0;
+    }
+
+    if (numero > 0) {
+      texto += unidades[numero];
+    }
+
+    return texto;
+  }
+
+  let resultado = "";
+
+  if (valor >= 1000) {
+    const milhares = Math.floor(valor / 1000);
+    resultado += (milhares === 1 ? "mil" : converter(milhares) + " mil");
+    valor %= 1000;
+    if (valor > 0) resultado += " e ";
+  }
+
+  resultado += converter(valor);
+
+  return resultado.trim() + " reais";
+}
+
+}
+
+</script>
+
+
+
+</body>
+</html>
